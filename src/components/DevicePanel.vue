@@ -1,7 +1,10 @@
 <template>
   <div class="device-panel">
     <div class="panel-header">
-      <h2>设备信息</h2>
+      <div class="header-title">
+        <img src="@/assets/OIP.webp" alt="海恒智能" class="header-logo" />
+        <h2>设备信息</h2>
+      </div>
       <div class="connection-status" :class="{ connected: isConnected }">
         <span class="status-dot"></span>
         <span>{{ isConnected ? '已连接' : '未连接' }}</span>
@@ -24,9 +27,10 @@
         <button 
           class="btn" 
           :class="isConnected ? 'btn-danger' : 'btn-primary'"
+          :disabled="isConnecting"
           @click="toggleConnection"
         >
-          {{ isConnected ? '断开连接' : '连接' }}
+          {{ connectButtonText }}
         </button>
       </div>
 
@@ -56,45 +60,6 @@
         </div>
       </div>
 
-      <!-- 位置信息 -->
-      <div class="section">
-        <h3>位置信息</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">X</span>
-            <span class="value">{{ position.x.toFixed(3) }} m</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Y</span>
-            <span class="value">{{ position.y.toFixed(3) }} m</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Z</span>
-            <span class="value">{{ position.z.toFixed(3) }} m</span>
-          </div>
-          <div class="info-item">
-            <span class="label">航向角</span>
-            <span class="value">{{ position.yaw.toFixed(1) }}°</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 传感器状态 -->
-      <div class="section">
-        <h3>传感器状态</h3>
-        <div class="sensor-list">
-          <div 
-            v-for="sensor in sensors" 
-            :key="sensor.name" 
-            class="sensor-item"
-          >
-            <span class="sensor-dot" :class="sensor.status"></span>
-            <span class="sensor-name">{{ sensor.name }}</span>
-            <span class="sensor-status">{{ sensor.statusText }}</span>
-          </div>
-        </div>
-      </div>
-
       <!-- 快捷操作 -->
       <div class="section">
         <h3>快捷操作</h3>
@@ -106,38 +71,62 @@
             紧急停止
           </button>
         </div>
+        <button 
+          class="btn" 
+          :class="showKeyposes ? 'btn-success' : 'btn-secondary'"
+          @click="toggleKeyposes"
+          :disabled="!isConnected"
+          style="margin-top: 10px;"
+        >
+          {{ showKeyposes ? '隐藏关键点' : '显示关键点' }}
+        </button>
+      </div>
+
+      <!-- 打点信息 -->
+      <div class="section">
+        <h3>打点信息</h3>
+        <div class="click-point-row">
+          <div class="coord-inline">
+            <span class="coord-label">X:</span>
+            <span class="coord-value">{{ clickPoint.x.toFixed(2) }}</span>
+          </div>
+          <div class="coord-inline">
+            <span class="coord-label">Y:</span>
+            <span class="coord-value">{{ clickPoint.y.toFixed(2) }}</span>
+          </div>
+          <span class="point-dot" :class="{ active: clickPointReceived }"></span>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+// roslib 1.x 使用默认导出
+import ROSLIB from 'roslib';
+import config from '@/config';
+
 export default {
   name: 'DevicePanel',
   emits: ['connection-change'],
   data() {
     return {
-      rosUrl: 'ws://localhost:9090',
+      rosUrl: config.ros.bridgeUrl,
       isConnected: false,
-      deviceInfo: {
-        name: 'Sea-Robot-01',
-        id: 'SR-2024-001',
-        status: '待机中',
-        battery: 85
-      },
-      position: {
+      isConnecting: false,
+      ros: null,
+      clickPointSubscriber: null,
+      clickPoint: {
         x: 0,
-        y: 0,
-        z: 0,
-        yaw: 0
+        y: 0
       },
-      sensors: [
-        { name: 'LiDAR', status: 'online', statusText: '正常' },
-        { name: 'IMU', status: 'online', statusText: '正常' },
-        { name: 'GPS', status: 'warning', statusText: '信号弱' },
-        { name: '摄像头', status: 'online', statusText: '正常' },
-        { name: '声呐', status: 'offline', statusText: '离线' }
-      ]
+      clickPointReceived: false,
+      deviceInfo: { ...config.device },
+      // 自动连接
+      autoConnectTimer: null,
+      autoConnectInterval: 3000,  // 每3秒检测一次
+      // 关键点显示状态
+      showKeyposes: false
     };
   },
   computed: {
@@ -149,9 +138,65 @@ export default {
         '充电中': 'status-charging'
       };
       return statusMap[this.deviceInfo.status] || '';
+    },
+    connectButtonText() {
+      if (this.isConnecting) {
+        return '连接中...';
+      }
+      return this.isConnected ? '断开连接' : '连接';
     }
   },
+  beforeUnmount() {
+    this.stopAutoConnect();
+    this.disconnect();
+  },
+  mounted() {
+    // 启动自动连接检测
+    this.startAutoConnect();
+  },
   methods: {
+    startAutoConnect() {
+      // 立即尝试一次
+      this.tryAutoConnect();
+      // 定时检测
+      this.autoConnectTimer = setInterval(() => {
+        this.tryAutoConnect();
+      }, this.autoConnectInterval);
+    },
+    stopAutoConnect() {
+      if (this.autoConnectTimer) {
+        clearInterval(this.autoConnectTimer);
+        this.autoConnectTimer = null;
+      }
+    },
+    tryAutoConnect() {
+      // 如果已连接或正在连接，不做任何事
+      if (this.isConnected || this.isConnecting) {
+        return;
+      }
+      
+      // 尝试检测端口是否可用
+      const testWs = new WebSocket(this.rosUrl);
+      
+      testWs.onopen = () => {
+        console.log('Auto-connect: Port available, connecting...');
+        testWs.close();
+        // 端口可用，自动连接
+        this.connect();
+      };
+      
+      testWs.onerror = () => {
+        // 端口不可用，静默失败
+        testWs.close();
+      };
+      
+      // 设置检测超时
+      setTimeout(() => {
+        if (testWs.readyState === WebSocket.CONNECTING) {
+          testWs.close();
+        }
+      }, 2000);
+    },
     toggleConnection() {
       if (this.isConnected) {
         this.disconnect();
@@ -160,24 +205,164 @@ export default {
       }
     },
     connect() {
-      // TODO: 实现 ROS 连接逻辑
+      if (this.isConnecting) {
+        return;
+      }
+      
+      this.isConnecting = true;
       console.log('Connecting to:', this.rosUrl);
-      this.isConnected = true;
-      this.$emit('connection-change', true);
+      
+      // 创建 ROS 连接
+      this.ros = new ROSLIB.Ros({
+        url: this.rosUrl
+      });
+      
+      // 连接成功
+      this.ros.on('connection', () => {
+        console.log('Connected to ROS Bridge');
+        this.isConnected = true;
+        this.isConnecting = false;
+        this.$emit('connection-change', true);
+        
+        // 订阅 click_point 话题
+        this.subscribeClickPoint();
+      });
+      
+      // 连接失败
+      this.ros.on('error', (error) => {
+        console.error('ROS connection error:', error);
+        this.isConnecting = false;
+        this.isConnected = false;
+        alert('连接失败，请检查 ROS Bridge 是否启动');
+      });
+      
+      // 连接关闭
+      this.ros.on('close', () => {
+        console.log('ROS connection closed');
+        this.isConnected = false;
+        this.isConnecting = false;
+        this.$emit('connection-change', false);
+      });
+      
+      // 设置连接超时
+      setTimeout(() => {
+        if (this.isConnecting) {
+          this.isConnecting = false;
+          if (this.ros) {
+            this.ros.close();
+          }
+          alert('连接超时，请检查网络和 ROS Bridge 地址');
+        }
+      }, config.ros.connectionTimeout);
     },
     disconnect() {
-      // TODO: 实现断开连接逻辑
       console.log('Disconnecting...');
+      
+      // 取消订阅
+      if (this.clickPointSubscriber) {
+        this.clickPointSubscriber.unsubscribe();
+        this.clickPointSubscriber = null;
+      }
+      
+      // 关闭连接
+      if (this.ros) {
+        this.ros.close();
+        this.ros = null;
+      }
+      
       this.isConnected = false;
+      this.clickPointReceived = false;
       this.$emit('connection-change', false);
     },
+    subscribeClickPoint() {
+      if (!this.ros) {
+        return;
+      }
+      
+      // 订阅 clicked_point 话题 (geometry_msgs/PointStamped)
+      this.clickPointSubscriber = new ROSLIB.Topic({
+        ros: this.ros,
+        name: config.topics.clickPoint,
+        messageType: 'geometry_msgs/PointStamped'
+      });
+      
+      this.clickPointSubscriber.subscribe((message) => {
+        console.log('Received click_point:', message);
+        this.clickPoint.x = message.point.x;
+        this.clickPoint.y = message.point.y;
+        this.clickPointReceived = true;
+      });
+      
+      console.log(`Subscribed to ${config.topics.clickPoint}`);
+    },
     resetOdom() {
-      console.log('Reset odometry');
-      // TODO: 发送重置里程计命令
+      if (!this.ros || !this.isConnected) {
+        alert('请先连接 ROS Bridge');
+        return;
+      }
+      
+      console.log('Calling relocalize service...');
+      
+      // 创建服务客户端
+      const relocalizeService = new ROSLIB.Service({
+        ros: this.ros,
+        name: config.services.relocalize.name,
+        serviceType: config.services.relocalize.type
+      });
+      
+      // 创建请求
+      const request = new ROSLIB.ServiceRequest({
+        pcd_path: config.map.pcdPath,
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        yaw: 0.0,
+        pitch: 0.0,
+        roll: 0.0
+      });
+      
+      // 调用服务
+      relocalizeService.callService(request, (result) => {
+        console.log('Relocalize service response:', result);
+        alert('重定位成功');
+      }, (error) => {
+        console.error('Relocalize service error:', error);
+        alert('重定位失败: ' + error);
+      });
     },
     emergencyStop() {
       console.log('Emergency stop!');
       // TODO: 发送紧急停止命令
+    },
+    toggleKeyposes() {
+      if (!this.ros || !this.isConnected) {
+        alert('请先连接 ROS Bridge');
+        return;
+      }
+      
+      // 切换状态
+      const newState = !this.showKeyposes;
+      
+      // 创建服务客户端
+      const showKeyposeService = new ROSLIB.Service({
+        ros: this.ros,
+        name: '/show_keyposes',
+        serviceType: 'std_srvs/srv/SetBool'
+      });
+      
+      // 创建请求
+      const request = new ROSLIB.ServiceRequest({
+        data: newState
+      });
+      
+      // 调用服务
+      showKeyposeService.callService(request, (result) => {
+        console.log('Show keyposes response:', result);
+        this.showKeyposes = newState;
+      }, (error) => {
+        console.error('Show keyposes error:', error);
+        alert('设置失败: ' + error);
+      });
     }
   }
 };
@@ -194,12 +379,23 @@ export default {
 }
 
 .panel-header {
-  padding: 16px 20px;
+  padding: 12px 20px;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-logo {
+  height: 36px;
+  width: auto;
 }
 
 .panel-header h2 {
@@ -322,6 +518,15 @@ export default {
 
 .btn-secondary:hover {
   background: #cbd5e1;
+}
+
+.btn-success {
+  background: #16a34a;
+  color: #fff;
+}
+
+.btn-success:hover {
+  background: #15803d;
 }
 
 .info-grid {
@@ -465,5 +670,55 @@ export default {
 
 .panel-content::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* 打点信息样式 */
+.click-point-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.coord-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.coord-inline .coord-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.coord-inline .coord-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  font-family: 'Monaco', 'Consolas', monospace;
+  min-width: 70px;
+}
+
+.point-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  margin-left: auto;
+}
+
+.point-dot.active {
+  background: #16a34a;
+  box-shadow: 0 0 8px #16a34a;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 </style>

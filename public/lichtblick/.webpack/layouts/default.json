@@ -27,13 +27,13 @@
       },
       "cameraState": {
         "perspective": false,
-        "distance": 47.833119595737706,
-        "phi": 17.93534979926136,
-        "thetaOffset": -175.58243712090663,
+        "distance": 18.049999999884616,
+        "phi": 67.021957494627,
+        "thetaOffset": 98.9089301947217,
         "targetOffset": [
-          5.33211176549186,
-          -18.304090868313548,
-          7.303042254534883e-16
+          1.991077706539267,
+          -10.274075505638848,
+          -7.747806485007368e-16
         ],
         "target": [
           0,
@@ -50,7 +50,7 @@
         "near": 0.5,
         "far": 5000
       },
-      "followMode": "follow-pose",
+      "followMode": "follow-none",
       "followTf": "map",
       "scene": {
         "transforms": {
@@ -66,6 +66,9 @@
           "visible": true
         },
         "frame:map": {
+          "visible": true
+        },
+        "frame:body": {
           "visible": true
         }
       },
@@ -102,7 +105,7 @@
         "/local_costmap/costmap": {
           "visible": true,
           "colorMode": "costmap",
-          "alpha": 1
+          "alpha": 0.8
         },
         "/map": {
           "visible": true
@@ -147,18 +150,19 @@
           "visible": false
         },
         "/fastlio2/lio_path": {
-          "visible": true,
+          "visible": false,
           "lineWidth": 0.1
         },
         "/local_plan": {
           "visible": false
         },
         "/plan": {
-          "visible": false,
+          "visible": true,
           "gradient": [
             "#ff6b6bff",
             "#ff6b6b80"
-          ]
+          ],
+          "lineWidth": 0.1
         },
         "/plan_smoothed": {
           "visible": false
@@ -175,6 +179,9 @@
         "/robot_description": {
           "visible": true,
           "displayMode": "auto"
+        },
+        "/keypose_markers": {
+          "visible": true
         }
       },
       "publish": {

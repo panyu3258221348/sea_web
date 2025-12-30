@@ -11,7 +11,7 @@
 # 项目关键点
 
 - 利用[foxglove翻版开源](https://github.com/lichtblick-suite/lichtblick)，将foxglove栅格地图界面缝合到web中
-- 使用roslibjs库，直接订阅/发布ros2话题消息
+- 本项目没有任何http协议。使用roslibjs库，直接订阅/发布ros2话题消息
 
 # 预览
 
@@ -47,7 +47,7 @@ pnpm run serve
 pnpm run lint
 ```
 
-## 编译构建
+## 四、编译构建
 
 ```bash
 pnpm run build
