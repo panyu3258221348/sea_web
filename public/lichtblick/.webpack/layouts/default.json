@@ -1,0 +1,198 @@
+{
+  "configById": {
+    "3D!18i6zy7": {
+      "layers": {
+        "845139cb-26bc-40b3-8161-8ab60af4baf5": {
+          "visible": false,
+          "frameLocked": true,
+          "label": "Grid",
+          "instanceId": "845139cb-26bc-40b3-8161-8ab60af4baf5",
+          "layerId": "foxglove.Grid",
+          "size": 10,
+          "divisions": 10,
+          "lineWidth": 1,
+          "color": "#248eff",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        }
+      },
+      "cameraState": {
+        "perspective": false,
+        "distance": 47.833119595737706,
+        "phi": 17.93534979926136,
+        "thetaOffset": -175.58243712090663,
+        "targetOffset": [
+          5.33211176549186,
+          -18.304090868313548,
+          7.303042254534883e-16
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "followTf": "map",
+      "scene": {
+        "transforms": {
+          "showLabel": false,
+          "enablePreloading": false
+        }
+      },
+      "transforms": {
+        "frame:odom": {
+          "visible": true
+        },
+        "frame:base_link": {
+          "visible": true
+        },
+        "frame:map": {
+          "visible": true
+        }
+      },
+      "topics": {
+        "/back_up_to_free_markers": {
+          "visible": false
+        },
+        "/get_out_of_trouble_marker": {
+          "visible": false
+        },
+        "/get_out_of_trouble_marker_array": {
+          "visible": false
+        },
+        "/marker": {
+          "visible": false
+        },
+        "/visualization_marker": {
+          "visible": false
+        },
+        "/visualization_marker_array": {
+          "visible": false
+        },
+        "/waypoints": {
+          "visible": false
+        },
+        "/scanner/scan": {
+          "visible": false
+        },
+        "/global_costmap/costmap": {
+          "visible": true,
+          "colorMode": "costmap",
+          "alpha": 0.20000000000000015
+        },
+        "/local_costmap/costmap": {
+          "visible": true,
+          "colorMode": "costmap",
+          "alpha": 1
+        },
+        "/map": {
+          "visible": true
+        },
+        "/cost_cloud": {
+          "visible": false
+        },
+        "/fastlio2/body_cloud": {
+          "visible": false,
+          "colorField": "intensity",
+          "colorMode": "colormap",
+          "colorMap": "turbo"
+        },
+        "/fastlio2/world_cloud": {
+          "visible": false,
+          "colorField": "intensity",
+          "colorMode": "colormap",
+          "colorMap": "turbo"
+        },
+        "/global_costmap/voxel_grid": {
+          "visible": false
+        },
+        "/global_costmap/voxel_marked_cloud": {
+          "visible": false
+        },
+        "/localizer/map_cloud": {
+          "visible": false,
+          "colorField": "intensity",
+          "colorMode": "colormap",
+          "colorMap": "turbo"
+        },
+        "/global_costmap/published_footprint": {
+          "visible": false
+        },
+        "/local_costmap/published_footprint": {
+          "visible": false
+        },
+        "/goal_pose": {
+          "visible": false
+        },
+        "/initialpose": {
+          "visible": false
+        },
+        "/fastlio2/lio_path": {
+          "visible": true,
+          "lineWidth": 0.1
+        },
+        "/local_plan": {
+          "visible": false
+        },
+        "/plan": {
+          "visible": false,
+          "gradient": [
+            "#ff6b6bff",
+            "#ff6b6b80"
+          ]
+        },
+        "/plan_smoothed": {
+          "visible": false
+        },
+        "/received_global_plan": {
+          "visible": false
+        },
+        "/transformed_global_plan": {
+          "visible": false
+        },
+        "/unsmoothed_plan": {
+          "visible": false
+        },
+        "/robot_description": {
+          "visible": true,
+          "displayMode": "auto"
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {}
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": "3D!18i6zy7"
+}
