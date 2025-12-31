@@ -17,6 +17,8 @@
 
 ![](./src/assets/demo.png)
 
+![](./src/assets/demo_pad.png)
+
 ## 一、项目结构
 
 ```bash
@@ -52,3 +54,16 @@ pnpm run lint
 ```bash
 pnpm run build
 ```
+
+安装使用Nginx部署
+
+```bash
+sudo apt install nginx -y
+sudo systemctl start nginx      # 启动 Nginx
+sudo systemctl enable nginx     # 设置开机自启
+
+sudo rm /var/www/html/*.html   # 清除默认欢迎界面html
+sudo cp -r dist/* /var/www/html
+```
+
+访问机器人ip即可，默认80端口

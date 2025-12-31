@@ -20,7 +20,7 @@
           <input 
             v-model="rosUrl" 
             type="text" 
-            placeholder="ws://localhost:9090"
+            placeholder="ws://localhost:8760"
             :disabled="isConnected"
           />
         </div>
@@ -67,8 +67,12 @@
           <button class="btn btn-secondary" @click="resetOdom">
             重置里程计
           </button>
-          <button class="btn btn-secondary" @click="emergencyStop">
-            紧急停止
+          <button 
+            class="btn btn-danger"
+            @click="emergencyStop"
+            :disabled="!isConnected"
+          >
+            {{ isEmergencyStop ? '取消急停' : '紧急停止' }}
           </button>
         </div>
         <button 
@@ -126,7 +130,11 @@ export default {
       autoConnectTimer: null,
       autoConnectInterval: 3000,  // 每3秒检测一次
       // 关键点显示状态
-      showKeyposes: false
+      showKeyposes: false,
+      // 急停状态
+      isEmergencyStop: false,
+      emergencyStopTimer: null,
+      emergencyStopPublisher: null
     };
   },
   computed: {
@@ -148,6 +156,7 @@ export default {
   },
   beforeUnmount() {
     this.stopAutoConnect();
+    this.stopEmergencyStop();
     this.disconnect();
   },
   mounted() {
@@ -258,6 +267,9 @@ export default {
     disconnect() {
       console.log('Disconnecting...');
       
+      // 停止急停
+      this.stopEmergencyStop();
+      
       // 取消订阅
       if (this.clickPointSubscriber) {
         this.clickPointSubscriber.unsubscribe();
@@ -331,8 +343,57 @@ export default {
       });
     },
     emergencyStop() {
-      console.log('Emergency stop!');
-      // TODO: 发送紧急停止命令
+      if (!this.ros || !this.isConnected) {
+        alert('请先连接 ROS Bridge');
+        return;
+      }
+      
+      if (this.isEmergencyStop) {
+        // 取消急停
+        this.stopEmergencyStop();
+        console.log('Emergency stop cancelled');
+      } else {
+        // 启动急停
+        this.startEmergencyStop();
+        console.log('Emergency stop activated');
+      }
+    },
+    startEmergencyStop() {
+      // 创建发布者
+      this.emergencyStopPublisher = new ROSLIB.Topic({
+        ros: this.ros,
+        name: '/stop_robot/cmd_vel',
+        messageType: 'geometry_msgs/Twist'
+      });
+      
+      // 创建停止消息（所有速度为0）
+      const stopMessage = new ROSLIB.Message({
+        linear: { x: 0.0, y: 0.0, z: 0.0 },
+        angular: { x: 0.0, y: 0.0, z: 0.0 }
+      });
+      
+      // 20Hz = 50ms 间隔
+      this.emergencyStopTimer = setInterval(() => {
+        if (this.emergencyStopPublisher && this.ros && this.isConnected) {
+          this.emergencyStopPublisher.publish(stopMessage);
+        }
+      }, 50);
+      
+      this.isEmergencyStop = true;
+      console.log('Publishing stop commands at 20Hz to /stop_robot/cmd_vel');
+    },
+    stopEmergencyStop() {
+      if (this.emergencyStopTimer) {
+        clearInterval(this.emergencyStopTimer);
+        this.emergencyStopTimer = null;
+      }
+      
+      if (this.emergencyStopPublisher) {
+        this.emergencyStopPublisher.unadvertise();
+        this.emergencyStopPublisher = null;
+      }
+      
+      this.isEmergencyStop = false;
     },
     toggleKeyposes() {
       if (!this.ros || !this.isConnected) {

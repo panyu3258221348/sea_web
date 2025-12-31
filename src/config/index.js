@@ -7,7 +7,7 @@ const config = {
   // ROS Bridge 配置
   ros: {
     // WebSocket 连接地址
-    bridgeUrl: 'ws://localhost:9090',
+    bridgeUrl: 'ws://localhost:8760',
     // 连接超时时间 (毫秒)
     connectionTimeout: 5000
   },
@@ -35,7 +35,7 @@ const config = {
 
   // 设备默认信息
   device: {
-    name: 'Sea-Robot-01',
+    name: 'SeaDog_v1',
     id: 'SR-2024-001',
     status: '待机中',
     battery: 85
