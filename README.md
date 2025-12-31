@@ -63,7 +63,9 @@ sudo systemctl start nginx      # 启动 Nginx
 sudo systemctl enable nginx     # 设置开机自启
 
 sudo rm /var/www/html/*.html   # 清除默认欢迎界面html
+
 sudo cp -r dist/* /var/www/html
+sudo systemctl restart nginx
 ```
 
 访问机器人ip即可，默认80端口
