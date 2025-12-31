@@ -89,18 +89,32 @@
       <!-- 打点信息 -->
       <div class="section">
         <h3>打点信息</h3>
-        <div class="click-point-row">
-          <div class="coord-inline">
-            <span class="coord-label">X:</span>
-            <span class="coord-value">{{ clickPoint.x.toFixed(2) }}</span>
+        <div class="point-card">
+          <div class="point-header">
+            <span class="point-source">clicked_point</span>
+            <span class="point-dot" :class="{ active: clickPointReceived }"></span>
           </div>
-          <div class="coord-inline">
-            <span class="coord-label">Y:</span>
-            <span class="coord-value">{{ clickPoint.y.toFixed(2) }}</span>
+          <div class="point-coords">
+            <span class="coord-item"><span class="coord-label">X:</span> {{ clickPoint.x.toFixed(2) }}</span>
+            <span class="coord-item"><span class="coord-label">Y:</span> {{ clickPoint.y.toFixed(2) }}</span>
           </div>
-          <span class="point-dot" :class="{ active: clickPointReceived }"></span>
+        </div>
+        <div class="point-card" style="margin-top: 8px;">
+          <div class="point-header">
+            <span class="point-source">initialpose</span>
+            <span class="point-dot" :class="{ active: initialPoseReceived }"></span>
+          </div>
+          <div class="point-coords">
+            <span class="coord-item"><span class="coord-label">X:</span> {{ initialPose.x.toFixed(2) }}</span>
+            <span class="coord-item"><span class="coord-label">Y:</span> {{ initialPose.y.toFixed(2) }}</span>
+            <span class="coord-item"><span class="coord-label">Yaw:</span> {{ initialPose.yaw.toFixed(2) }}</span>
+          </div>
         </div>
       </div>
+    </div>
+
+    <div class="panel-footer">
+      <span>深圳市海恒智能有限公司</span>
     </div>
   </div>
 </template>
@@ -120,11 +134,18 @@ export default {
       isConnecting: false,
       ros: null,
       clickPointSubscriber: null,
+      initialPoseSubscriber: null,
       clickPoint: {
         x: 0,
         y: 0
       },
       clickPointReceived: false,
+      initialPose: {
+        x: 0,
+        y: 0,
+        yaw: 0
+      },
+      initialPoseReceived: false,
       deviceInfo: { ...config.device },
       // 自动连接
       autoConnectTimer: null,
@@ -235,6 +256,8 @@ export default {
         
         // 订阅 click_point 话题
         this.subscribeClickPoint();
+        // 订阅 initialpose 话题
+        this.subscribeInitialPose();
       });
       
       // 连接失败
@@ -276,6 +299,11 @@ export default {
         this.clickPointSubscriber = null;
       }
       
+      if (this.initialPoseSubscriber) {
+        this.initialPoseSubscriber.unsubscribe();
+        this.initialPoseSubscriber = null;
+      }
+      
       // 关闭连接
       if (this.ros) {
         this.ros.close();
@@ -284,6 +312,7 @@ export default {
       
       this.isConnected = false;
       this.clickPointReceived = false;
+      this.initialPoseReceived = false;
       this.$emit('connection-change', false);
     },
     subscribeClickPoint() {
@@ -306,6 +335,33 @@ export default {
       });
       
       console.log(`Subscribed to ${config.topics.clickPoint}`);
+    },
+    subscribeInitialPose() {
+      if (!this.ros) {
+        return;
+      }
+      
+      // 订阅 initialpose 话题 (geometry_msgs/PoseWithCovarianceStamped)
+      this.initialPoseSubscriber = new ROSLIB.Topic({
+        ros: this.ros,
+        name: '/initialpose',
+        messageType: 'geometry_msgs/PoseWithCovarianceStamped'
+      });
+      
+      this.initialPoseSubscriber.subscribe((message) => {
+        console.log('Received initialpose:', message);
+        this.initialPose.x = message.pose.pose.position.x;
+        this.initialPose.y = message.pose.pose.position.y;
+        
+        // 从四元数计算 yaw
+        const q = message.pose.pose.orientation;
+        const yaw = Math.atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+        this.initialPose.yaw = yaw;
+        
+        this.initialPoseReceived = true;
+      });
+      
+      console.log('Subscribed to /initialpose');
     },
     resetOdom() {
       if (!this.ros || !this.isConnected) {
@@ -734,14 +790,44 @@ export default {
 }
 
 /* 打点信息样式 */
-.click-point-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.point-card {
   padding: 10px 12px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
+}
+
+.point-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.point-source {
+  font-size: 11px;
+  color: #6366f1;
+  font-weight: 600;
+  background: #eef2ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.point-coords {
+  display: flex;
+  gap: 24px;
+}
+
+.coord-item {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.coord-item .coord-label {
+  color: #64748b;
+  font-weight: 500;
 }
 
 .coord-inline {
@@ -757,11 +843,11 @@ export default {
 }
 
 .coord-inline .coord-value {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #1e293b;
   font-family: 'Monaco', 'Consolas', monospace;
-  min-width: 70px;
+  min-width: 55px;
 }
 
 .point-dot {
@@ -769,7 +855,6 @@ export default {
   height: 8px;
   border-radius: 50%;
   background: #94a3b8;
-  margin-left: auto;
 }
 
 .point-dot.active {
@@ -781,5 +866,20 @@ export default {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+.panel-footer {
+  padding: 8px 20px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.panel-footer span {
+  font-size: 11px;
+  color: #64748b;
+  letter-spacing: 0.5px;
 }
 </style>

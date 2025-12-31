@@ -11,6 +11,7 @@
 # 项目关键点
 
 - 利用[foxglove翻版开源](https://github.com/lichtblick-suite/lichtblick)，将foxglove栅格地图界面缝合到web中
+- foxglove_bridge添加topic白名单，使用`ros2 param list /foxglove_bridge`查看参数
 - 本项目没有任何http协议。使用roslibjs库，直接订阅/发布ros2话题消息
 
 # 预览
@@ -30,6 +31,7 @@
 
 - node v20.19.6
 - pnpm 10.26.2
+- nginx
 
 ### 2.安装
 

@@ -6,8 +6,11 @@
 const config = {
   // ROS Bridge 配置
   ros: {
-    // WebSocket 连接地址
-    bridgeUrl: 'ws://localhost:8760',
+    // WebSocket 连接地址 - 自动使用浏览器访问的主机IP
+    get bridgeUrl() {
+      const host = window.location.hostname || 'localhost';
+      return `ws://${host}:8760`;
+    },
     // 连接超时时间 (毫秒)
     connectionTimeout: 5000
   },

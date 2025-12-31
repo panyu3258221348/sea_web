@@ -60,7 +60,7 @@
       },
       "transforms": {
         "frame:odom": {
-          "visible": true
+          "visible": false
         },
         "frame:base_link": {
           "visible": true
@@ -105,7 +105,7 @@
         "/local_costmap/costmap": {
           "visible": true,
           "colorMode": "costmap",
-          "alpha": 0.8
+          "alpha": 1
         },
         "/map": {
           "visible": true
@@ -141,7 +141,7 @@
           "visible": false
         },
         "/local_costmap/published_footprint": {
-          "visible": false
+          "visible": true
         },
         "/goal_pose": {
           "visible": false
