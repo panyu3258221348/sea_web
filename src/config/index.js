@@ -18,7 +18,11 @@ const config = {
   // 话题配置
   topics: {
     // 点击点话题
-    clickPoint: '/clicked_point'
+    clickPoint: '/clicked_point',
+    // 初始位姿话题
+    initialPose: '/initialpose',
+    // 里程计话题
+    odom: '/fastlio2/lio_odom'
   },
 
   // 服务配置

@@ -1,6 +1,7 @@
 .DS_Store
 node_modules
 /dist
+/dist_electron
 
 
 # local env files
@@ -21,3 +22,22 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Android / Capacitor
+android/.gradle
+android/build
+android/app/build
+android/app/release
+android/*.iml
+android/app/*.iml
+android/local.properties
+android/.idea
+android/captures
+android/.externalNativeBuild
+android/.cxx
+android/app/src/main/assets/public
+android/capacitor.config.json
+
+# Gradle
+.gradle
+*.hprof

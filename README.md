@@ -53,6 +53,8 @@ pnpm run lint
 
 ## 四、编译构建
 
+### 1. Web 部署（Nginx）
+
 ```bash
 pnpm run build
 ```
@@ -71,3 +73,88 @@ sudo systemctl restart nginx
 ```
 
 访问机器人ip即可，默认80端口
+
+### 2. 桌面客户端打包（Electron）
+
+支持 Windows 和 Linux 平台。
+
+#### 安装依赖
+
+首次使用需安装 Electron 依赖：
+
+```bash
+pnpm install
+# 如果 Electron 二进制未下载，手动执行：
+cd node_modules/.pnpm/electron@28.3.3/node_modules/electron && node install.js
+```
+
+#### 打包命令
+
+```bash
+# 开发模式运行
+pnpm electron:serve
+
+# 打包 Linux 版本 (AppImage + deb)
+pnpm electron:build:linux
+
+# 打包 Windows 版本 (需要 wine 或在 Windows 系统上)
+pnpm electron:build:win
+
+# 同时打包 Linux 和 Windows
+pnpm electron:build:all
+```
+
+#### 输出位置
+
+打包后的安装包位于 `dist_electron/` 目录：
+- Linux: `Sea-AI-x.x.x.AppImage`、`sea-ai_x.x.x_amd64.deb`
+- Windows: `Sea-AI Setup x.x.x.exe`
+
+#### 注意事项
+
+- 在 Linux 上打包 Windows 版本需要安装 `wine`
+- 窗口配置：默认全屏，最小尺寸 1200×800，无菜单栏
+
+### 3. Android APK 打包（Capacitor）
+
+#### 前置条件
+
+- Android Studio
+- Android SDK
+- JDK 11+
+
+#### 打包步骤
+
+```bash
+# 1. 构建 Web 并同步到 Android 项目
+pnpm cap:build:android
+
+# 2. 打开 Android Studio
+pnpm cap:open:android
+
+# 3. 在 Android Studio 中：Build → Build Bundle(s) / APK(s) → Build APK(s)
+```
+
+#### 命令行打包（可选）
+
+```bash
+cd android
+
+# Debug APK
+./gradlew assembleDebug
+
+# Release APK
+./gradlew assembleRelease
+```
+
+APK 输出位置：`android/app/build/outputs/apk/`
+
+#### 环境变量配置
+
+如果 `cap:open:android` 找不到 Android Studio，需要设置环境变量：
+
+```bash
+export CAPACITOR_ANDROID_STUDIO_PATH="/path/to/android-studio/bin/studio.sh"
+```
+
+可添加到 `~/.bashrc` 永久生效。

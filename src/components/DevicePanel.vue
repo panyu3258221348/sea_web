@@ -60,6 +60,24 @@
         </div>
       </div>
 
+      <!-- 里程计速度 -->
+      <div class="section">
+        <div class="section-header">
+          <h3>里程计速度</h3>
+          <div class="velocity-indicator" :class="{ active: odomReceived }"></div>
+        </div>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">线速度</span>
+            <span class="value">{{ odomVelocity.linear.toFixed(3) }} m/s</span>
+          </div>
+          <div class="info-item">
+            <span class="label">角速度</span>
+            <span class="value">{{ odomVelocity.angular.toFixed(3) }} rad/s</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 快捷操作 -->
       <div class="section">
         <h3>快捷操作</h3>
@@ -146,6 +164,13 @@ export default {
         yaw: 0
       },
       initialPoseReceived: false,
+      // 里程计速度
+      odomVelocity: {
+        linear: 0,
+        angular: 0
+      },
+      odomReceived: false,
+      odomSubscriber: null,
       deviceInfo: { ...config.device },
       // 自动连接
       autoConnectTimer: null,
@@ -258,6 +283,8 @@ export default {
         this.subscribeClickPoint();
         // 订阅 initialpose 话题
         this.subscribeInitialPose();
+        // 订阅里程计话题
+        this.subscribeOdom();
       });
       
       // 连接失败
@@ -304,6 +331,11 @@ export default {
         this.initialPoseSubscriber = null;
       }
       
+      if (this.odomSubscriber) {
+        this.odomSubscriber.unsubscribe();
+        this.odomSubscriber = null;
+      }
+      
       // 关闭连接
       if (this.ros) {
         this.ros.close();
@@ -313,6 +345,7 @@ export default {
       this.isConnected = false;
       this.clickPointReceived = false;
       this.initialPoseReceived = false;
+      this.odomReceived = false;
       this.$emit('connection-change', false);
     },
     subscribeClickPoint() {
@@ -344,7 +377,7 @@ export default {
       // 订阅 initialpose 话题 (geometry_msgs/PoseWithCovarianceStamped)
       this.initialPoseSubscriber = new ROSLIB.Topic({
         ros: this.ros,
-        name: '/initialpose',
+        name: config.topics.initialPose,
         messageType: 'geometry_msgs/PoseWithCovarianceStamped'
       });
       
@@ -361,7 +394,29 @@ export default {
         this.initialPoseReceived = true;
       });
       
-      console.log('Subscribed to /initialpose');
+      console.log(`Subscribed to ${config.topics.initialPose}`);
+    },
+    subscribeOdom() {
+      if (!this.ros) {
+        return;
+      }
+      
+      // 订阅里程计话题 (nav_msgs/Odometry)
+      this.odomSubscriber = new ROSLIB.Topic({
+        ros: this.ros,
+        name: config.topics.odom,
+        messageType: 'nav_msgs/Odometry'
+      });
+      
+      this.odomSubscriber.subscribe((message) => {
+        // 获取线速度 (x方向)
+        this.odomVelocity.linear = message.twist.twist.linear.x;
+        // 获取角速度 (z轴)
+        this.odomVelocity.angular = message.twist.twist.angular.z;
+        this.odomReceived = true;
+      });
+      
+      console.log(`Subscribed to ${config.topics.odom}`);
     },
     resetOdom() {
       if (!this.ros || !this.isConnected) {
@@ -866,6 +921,32 @@ export default {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+/* 里程计速度样式 */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-header h3 {
+  margin-bottom: 0;
+}
+
+.velocity-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+
+.velocity-indicator.active {
+  background: #16a34a;
+  box-shadow: 0 0 8px #16a34a;
+  animation: pulse 2s infinite;
 }
 
 .panel-footer {
