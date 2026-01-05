@@ -1,24 +1,24 @@
 {
-  "name": "sea-ai",
+  "name": "sea_web",
   "version": "0.1.0",
   "private": true,
-  "description": "Sea-AI Desktop Application",
+  "description": "Sea Web Application",
   "author": {
     "name": "Seaever",
     "email": "contact@seaever.com"
   },
   "homepage": "https://github.com/Seaever/Sea-AI",
-  "main": "electron/main.js",
+  "main": "desktop/main.js",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "eslint --ext .js,.vue src/",
     "lint:fix": "eslint --ext .js,.vue src/ --fix",
     "electron:serve": "concurrently -k \"cross-env BROWSER=none vue-cli-service serve\" \"wait-on http://localhost:8080 && cross-env NODE_ENV=development electron .\"",
-    "electron:build": "vue-cli-service build && electron-builder --config electron-builder.json",
-    "electron:build:linux": "vue-cli-service build && electron-builder --config electron-builder.json --linux",
-    "electron:build:win": "vue-cli-service build && electron-builder --config electron-builder.json --win",
-    "electron:build:all": "vue-cli-service build && electron-builder --config electron-builder.json --linux --win",
+    "electron:build": "vue-cli-service build && electron-builder --config desktop/electron-builder.json",
+    "electron:build:linux": "vue-cli-service build && electron-builder --config desktop/electron-builder.json --linux",
+    "electron:build:win": "vue-cli-service build && electron-builder --config desktop/electron-builder.json --win",
+    "electron:build:all": "vue-cli-service build && electron-builder --config desktop/electron-builder.json --linux --win",
     "cap:sync": "vue-cli-service build && npx cap sync",
     "cap:open:android": "npx cap open android",
     "cap:build:android": "vue-cli-service build && npx cap sync android"

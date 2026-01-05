@@ -51,10 +51,17 @@
             <span class="value" :class="statusClass">{{ deviceInfo.status }}</span>
           </div>
           <div class="info-item">
-            <span class="label">电池电量</span>
+            <span class="label">左电池电量</span>
             <div class="battery-bar">
-              <div class="battery-level" :style="{ width: deviceInfo.battery + '%' }"></div>
-              <span class="battery-text">{{ deviceInfo.battery }}%</span>
+              <div class="battery-level" :style="{ width: deviceInfo.batteryLeft + '%' }"></div>
+              <span class="battery-text">{{ deviceInfo.batteryLeft }}%</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="label">右电池电量</span>
+            <div class="battery-bar">
+              <div class="battery-level" :style="{ width: deviceInfo.batteryRight + '%' }"></div>
+              <span class="battery-text">{{ deviceInfo.batteryRight }}%</span>
             </div>
           </div>
         </div>
@@ -87,8 +94,8 @@
           </button>
           <button 
             class="btn btn-danger"
-            @click="emergencyStop"
             :disabled="!isConnected"
+            @click="emergencyStop"
           >
             {{ isEmergencyStop ? '取消急停' : '紧急停止' }}
           </button>
@@ -96,9 +103,9 @@
         <button 
           class="btn" 
           :class="showKeyposes ? 'btn-success' : 'btn-secondary'"
-          @click="toggleKeyposes"
           :disabled="!isConnected"
           style="margin-top: 10px;"
+          @click="toggleKeyposes"
         >
           {{ showKeyposes ? '隐藏关键点' : '显示关键点' }}
         </button>
@@ -171,6 +178,9 @@ export default {
       },
       odomReceived: false,
       odomSubscriber: null,
+      // 电池订阅器
+      batteryLeftSubscriber: null,
+      batteryRightSubscriber: null,
       deviceInfo: { ...config.device },
       // 自动连接
       autoConnectTimer: null,
@@ -285,6 +295,9 @@ export default {
         this.subscribeInitialPose();
         // 订阅里程计话题
         this.subscribeOdom();
+        // 订阅电池话题
+        this.subscribeBatteryLeft();
+        this.subscribeBatteryRight();
       });
       
       // 连接失败
@@ -334,6 +347,16 @@ export default {
       if (this.odomSubscriber) {
         this.odomSubscriber.unsubscribe();
         this.odomSubscriber = null;
+      }
+      
+      if (this.batteryLeftSubscriber) {
+        this.batteryLeftSubscriber.unsubscribe();
+        this.batteryLeftSubscriber = null;
+      }
+      
+      if (this.batteryRightSubscriber) {
+        this.batteryRightSubscriber.unsubscribe();
+        this.batteryRightSubscriber = null;
       }
       
       // 关闭连接
@@ -418,6 +441,44 @@ export default {
       
       console.log(`Subscribed to ${config.topics.odom}`);
     },
+    subscribeBatteryLeft() {
+      if (!this.ros) {
+        return;
+      }
+      
+      // 订阅左电池话题 (sensor_msgs/BatteryState)
+      this.batteryLeftSubscriber = new ROSLIB.Topic({
+        ros: this.ros,
+        name: config.topics.batteryLeft,
+        messageType: 'sensor_msgs/BatteryState'
+      });
+      
+      this.batteryLeftSubscriber.subscribe((message) => {
+        // BatteryState.percentage 范围是 0.0-1.0，转换为百分比
+        this.deviceInfo.batteryLeft = Math.round(message.percentage * 100);
+      });
+      
+      console.log(`Subscribed to ${config.topics.batteryLeft}`);
+    },
+    subscribeBatteryRight() {
+      if (!this.ros) {
+        return;
+      }
+      
+      // 订阅右电池话题 (sensor_msgs/BatteryState)
+      this.batteryRightSubscriber = new ROSLIB.Topic({
+        ros: this.ros,
+        name: config.topics.batteryRight,
+        messageType: 'sensor_msgs/BatteryState'
+      });
+      
+      this.batteryRightSubscriber.subscribe((message) => {
+        // BatteryState.percentage 范围是 0.0-1.0，转换为百分比
+        this.deviceInfo.batteryRight = Math.round(message.percentage * 100);
+      });
+      
+      console.log(`Subscribed to ${config.topics.batteryRight}`);
+    },
     resetOdom() {
       if (!this.ros || !this.isConnected) {
         alert('请先连接 ROS Bridge');
@@ -473,25 +534,26 @@ export default {
       // 创建发布者
       this.emergencyStopPublisher = new ROSLIB.Topic({
         ros: this.ros,
-        name: '/stop_robot/cmd_vel',
+        name: config.topics.emergencyStop,
         messageType: 'geometry_msgs/Twist'
       });
-      
-      // 创建停止消息（所有速度为0）
+
+      // 创建停止消息（使用配置的速度值）
       const stopMessage = new ROSLIB.Message({
-        linear: { x: 0.0, y: 0.0, z: 0.0 },
+        linear: { x: config.emergencyStop.linearVelocity, y: 0.0, z: 0.0 },
         angular: { x: 0.0, y: 0.0, z: 0.0 }
       });
-      
-      // 20Hz = 50ms 间隔
+
+      // 使用配置的发布频率
+      const interval = 1000 / config.emergencyStop.publishRate;
       this.emergencyStopTimer = setInterval(() => {
         if (this.emergencyStopPublisher && this.ros && this.isConnected) {
           this.emergencyStopPublisher.publish(stopMessage);
         }
-      }, 50);
+      }, interval);
       
       this.isEmergencyStop = true;
-      console.log('Publishing stop commands at 20Hz to /stop_robot/cmd_vel');
+      console.log(`Publishing stop commands at ${config.emergencyStop.publishRate}Hz to ${config.topics.emergencyStop}`);
     },
     stopEmergencyStop() {
       if (this.emergencyStopTimer) {

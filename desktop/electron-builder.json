@@ -1,12 +1,12 @@
 {
-  "appId": "com.seaever.sea-ai",
-  "productName": "Sea-AI",
+  "appId": "com.seaever.sea_web",
+  "productName": "sea_web",
   "directories": {
     "output": "dist_electron"
   },
   "files": [
     "dist/**/*",
-    "electron/**/*"
+    "desktop/**/*"
   ],
   "linux": {
     "target": [
@@ -40,7 +40,7 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "Sea-AI"
+    "shortcutName": "sea_web"
   },
   "mac": {
     "target": [

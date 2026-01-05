@@ -117,6 +117,8 @@ pnpm electron:build:all
 
 ### 3. Android APK 打包（Capacitor）
 
+> 由于apk不支持webGL，已经不考虑使用安卓客户端
+
 #### 前置条件
 
 - Android Studio

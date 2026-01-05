@@ -22,7 +22,21 @@ const config = {
     // 初始位姿话题
     initialPose: '/initialpose',
     // 里程计话题
-    odom: '/fastlio2/lio_odom'
+    odom: '/fastlio2/lio_odom',
+    // 急停话题
+    emergencyStop: '/stop_robot/cmd_vel',
+    // 左电池话题
+    batteryLeft: '/tita3232802/system/battery/left',
+    // 右电池话题
+    batteryRight: '/tita3232802/system/battery/right'
+  },
+
+  // 急停配置
+  emergencyStop: {
+    // 急停时的线速度 (m/s)，0 表示完全停止
+    linearVelocity: -0.15,
+    // 发布频率 (Hz)
+    publishRate: 20
   },
 
   // 服务配置
@@ -45,7 +59,8 @@ const config = {
     name: 'SeaDog_v1',
     id: 'SR-2024-001',
     status: '待机中',
-    battery: 85
+    batteryLeft: 85,
+    batteryRight: 85
   },
 
   // Lichtblick 配置

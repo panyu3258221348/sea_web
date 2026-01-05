@@ -3,12 +3,13 @@
 buildscript {
     
     repositories {
-        // 阿里云镜像
+        // 优先使用官方源
+        google()
+        mavenCentral()
+        // 阿里云镜像作为备用
         maven { url 'https://maven.aliyun.com/repository/google' }
         maven { url 'https://maven.aliyun.com/repository/central' }
         maven { url 'https://maven.aliyun.com/repository/public' }
-        google()
-        mavenCentral()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.2.0'
@@ -23,12 +24,13 @@ apply from: "variables.gradle"
 
 allprojects {
     repositories {
-        // 阿里云镜像
+        // 优先使用官方源
+        google()
+        mavenCentral()
+        // 阿里云镜像作为备用
         maven { url 'https://maven.aliyun.com/repository/google' }
         maven { url 'https://maven.aliyun.com/repository/central' }
         maven { url 'https://maven.aliyun.com/repository/public' }
-        google()
-        mavenCentral()
     }
 }
 
