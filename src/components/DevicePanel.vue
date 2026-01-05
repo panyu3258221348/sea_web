@@ -76,11 +76,11 @@
         <div class="info-grid">
           <div class="info-item">
             <span class="label">线速度</span>
-            <span class="value">{{ odomVelocity.linear.toFixed(3) }} m/s</span>
+            <span class="value">{{ odomVelocity.linear.toFixed(2) }} m/s</span>
           </div>
           <div class="info-item">
             <span class="label">角速度</span>
-            <span class="value">{{ odomVelocity.angular.toFixed(3) }} rad/s</span>
+            <span class="value">{{ odomVelocity.angular.toFixed(2) }} rad/s</span>
           </div>
         </div>
       </div>

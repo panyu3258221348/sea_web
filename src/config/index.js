@@ -57,7 +57,7 @@ const config = {
   // 设备默认信息
   device: {
     name: 'SeaDog_v1',
-    id: 'SR-2024-001',
+    id: 'SD-2025-001',
     status: '待机中',
     batteryLeft: 0,
     batteryRight: 0
