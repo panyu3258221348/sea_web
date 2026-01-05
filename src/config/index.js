@@ -51,7 +51,7 @@ const config = {
   // 地图配置
   map: {
     // PCD 点云地图路径
-    pcdPath: '/home/cmc/develop/Seaever/Sea-AI/sea_slam/maps/szlib_1103/map.pcd'
+    pcdPath: '/home/sea/SEA/sea_slam/maps/szlib_1103/map.pcd'
   },
 
   // 设备默认信息
@@ -59,8 +59,8 @@ const config = {
     name: 'SeaDog_v1',
     id: 'SR-2024-001',
     status: '待机中',
-    batteryLeft: 85,
-    batteryRight: 85
+    batteryLeft: 0,
+    batteryRight: 0
   },
 
   // Lichtblick 配置
