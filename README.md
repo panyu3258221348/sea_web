@@ -16,9 +16,10 @@
 
 # 预览
 
-![](./src/assets/demo.png)
+|桌面客户端|web网页端|
+|---|---|
+| ![](./src/assets/demo.jpg) | ![](./src/assets/demo_pad.png) |
 
-![](./src/assets/demo_pad.png)
 
 ## 一、项目结构
 

@@ -53,14 +53,14 @@
           <div class="info-item">
             <span class="label">左电池电量</span>
             <div class="battery-bar">
-              <div class="battery-level" :style="{ width: deviceInfo.batteryLeft + '%' }"></div>
+              <div class="battery-level" :class="{ 'battery-low': deviceInfo.batteryLeft < 25 }" :style="{ width: deviceInfo.batteryLeft + '%' }"></div>
               <span class="battery-text">{{ deviceInfo.batteryLeft }}%</span>
             </div>
           </div>
           <div class="info-item">
             <span class="label">右电池电量</span>
             <div class="battery-bar">
-              <div class="battery-level" :style="{ width: deviceInfo.batteryRight + '%' }"></div>
+              <div class="battery-level" :class="{ 'battery-low': deviceInfo.batteryRight < 25 }" :style="{ width: deviceInfo.batteryRight + '%' }"></div>
               <span class="battery-text">{{ deviceInfo.batteryRight }}%</span>
             </div>
           </div>
@@ -181,6 +181,8 @@ export default {
       // 电池订阅器
       batteryLeftSubscriber: null,
       batteryRightSubscriber: null,
+      // 机器人信息订阅器
+      robotInfoSubscriber: null,
       deviceInfo: { ...config.device },
       // 自动连接
       autoConnectTimer: null,
@@ -298,6 +300,8 @@ export default {
         // 订阅电池话题
         this.subscribeBatteryLeft();
         this.subscribeBatteryRight();
+        // 订阅机器人信息话题
+        this.subscribeRobotInfo();
       });
       
       // 连接失败
@@ -359,6 +363,11 @@ export default {
         this.batteryRightSubscriber = null;
       }
       
+      if (this.robotInfoSubscriber) {
+        this.robotInfoSubscriber.unsubscribe();
+        this.robotInfoSubscriber = null;
+      }
+      
       // 关闭连接
       if (this.ros) {
         this.ros.close();
@@ -375,33 +384,33 @@ export default {
       if (!this.ros) {
         return;
       }
-      
-      // 订阅 clicked_point 话题 (geometry_msgs/PointStamped)
+
+      // 订阅 clicked_point 话题
       this.clickPointSubscriber = new ROSLIB.Topic({
         ros: this.ros,
-        name: config.topics.clickPoint,
-        messageType: 'geometry_msgs/PointStamped'
+        name: config.topics.clickPoint.topic,
+        messageType: config.topics.clickPoint.messageType
       });
-      
+
       this.clickPointSubscriber.subscribe((message) => {
         console.log('Received click_point:', message);
         this.clickPoint.x = message.point.x;
         this.clickPoint.y = message.point.y;
         this.clickPointReceived = true;
       });
-      
-      console.log(`Subscribed to ${config.topics.clickPoint}`);
+
+      console.log(`Subscribed to ${config.topics.clickPoint.topic}`);
     },
     subscribeInitialPose() {
       if (!this.ros) {
         return;
       }
       
-      // 订阅 initialpose 话题 (geometry_msgs/PoseWithCovarianceStamped)
+      // 订阅 initialpose 话题
       this.initialPoseSubscriber = new ROSLIB.Topic({
         ros: this.ros,
-        name: config.topics.initialPose,
-        messageType: 'geometry_msgs/PoseWithCovarianceStamped'
+        name: config.topics.initialPose.topic,
+        messageType: config.topics.initialPose.messageType
       });
       
       this.initialPoseSubscriber.subscribe((message) => {
@@ -417,18 +426,18 @@ export default {
         this.initialPoseReceived = true;
       });
       
-      console.log(`Subscribed to ${config.topics.initialPose}`);
+      console.log(`Subscribed to ${config.topics.initialPose.topic}`);
     },
     subscribeOdom() {
       if (!this.ros) {
         return;
       }
       
-      // 订阅里程计话题 (nav_msgs/Odometry)
+      // 订阅里程计话题
       this.odomSubscriber = new ROSLIB.Topic({
         ros: this.ros,
-        name: config.topics.odom,
-        messageType: 'nav_msgs/Odometry'
+        name: config.topics.odom.topic,
+        messageType: config.topics.odom.messageType
       });
       
       this.odomSubscriber.subscribe((message) => {
@@ -439,43 +448,63 @@ export default {
         this.odomReceived = true;
       });
       
-      console.log(`Subscribed to ${config.topics.odom}`);
+      console.log(`Subscribed to ${config.topics.odom.topic}`);
     },
     subscribeBatteryLeft() {
       if (!this.ros) {
         return;
       }
       
-      // 订阅左电池话题 (sensor_msgs/BatteryState)
+      // 订阅左电池话题
       this.batteryLeftSubscriber = new ROSLIB.Topic({
         ros: this.ros,
-        name: config.topics.batteryLeft,
-        messageType: 'sensor_msgs/BatteryState'
+        name: config.topics.batteryLeft.topic,
+        messageType: config.topics.batteryLeft.messageType
       });
       
       this.batteryLeftSubscriber.subscribe((message) => {
         this.deviceInfo.batteryLeft = Math.round(message.percentage);
       });
       
-      console.log(`Subscribed to ${config.topics.batteryLeft}`);
+      console.log(`Subscribed to ${config.topics.batteryLeft.topic}`);
     },
     subscribeBatteryRight() {
       if (!this.ros) {
         return;
       }
       
-      // 订阅右电池话题 (sensor_msgs/BatteryState)
+      // 订阅右电池话题
       this.batteryRightSubscriber = new ROSLIB.Topic({
         ros: this.ros,
-        name: config.topics.batteryRight,
-        messageType: 'sensor_msgs/BatteryState'
+        name: config.topics.batteryRight.topic,
+        messageType: config.topics.batteryRight.messageType
       });
       
       this.batteryRightSubscriber.subscribe((message) => {
         this.deviceInfo.batteryRight = Math.round(message.percentage);
       });
       
-      console.log(`Subscribed to ${config.topics.batteryRight}`);
+      console.log(`Subscribed to ${config.topics.batteryRight.topic}`);
+    },
+    subscribeRobotInfo() {
+      if (!this.ros) {
+        return;
+      }
+      
+      // 订阅机器人信息话题
+      this.robotInfoSubscriber = new ROSLIB.Topic({
+        ros: this.ros,
+        name: config.topics.robotInfo.topic,
+        messageType: config.topics.robotInfo.messageType
+      });
+      
+      this.robotInfoSubscriber.subscribe((message) => {
+        this.deviceInfo.name = message.robot_type;
+        this.deviceInfo.id = message.robot_id;
+        this.deviceInfo.status = message.status;
+      });
+      
+      console.log(`Subscribed to ${config.topics.robotInfo.topic}`);
     },
     resetOdom() {
       if (!this.ros || !this.isConnected) {
@@ -532,8 +561,8 @@ export default {
       // 创建发布者
       this.emergencyStopPublisher = new ROSLIB.Topic({
         ros: this.ros,
-        name: config.topics.emergencyStop,
-        messageType: 'geometry_msgs/Twist'
+        name: config.topics.emergencyStop.topic,
+        messageType: config.topics.emergencyStop.messageType
       });
 
       // 创建停止消息（使用配置的速度值）
@@ -551,7 +580,7 @@ export default {
       }, interval);
       
       this.isEmergencyStop = true;
-      console.log(`Publishing stop commands at ${config.emergencyStop.publishRate}Hz to ${config.topics.emergencyStop}`);
+      console.log(`Publishing stop commands at ${config.emergencyStop.publishRate}Hz to ${config.topics.emergencyStop.topic}`);
     },
     stopEmergencyStop() {
       if (this.emergencyStopTimer) {
@@ -816,7 +845,11 @@ export default {
   height: 100%;
   background: linear-gradient(90deg, #22c55e, #16a34a);
   border-radius: 4px;
-  transition: width 0.3s;
+  transition: width 0.3s, background 0.3s;
+}
+
+.battery-level.battery-low {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
 }
 
 .battery-text {

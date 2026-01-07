@@ -18,23 +18,46 @@ const config = {
   // 话题配置
   topics: {
     // 点击点话题
-    clickPoint: '/clicked_point',
+    clickPoint: {
+      topic: '/clicked_point',
+      messageType: 'geometry_msgs/msg/PointStamped'
+    },
     // 初始位姿话题
-    initialPose: '/initialpose',
+    initialPose: {
+      topic: '/initialpose',
+      messageType: 'geometry_msgs/msg/PoseWithCovarianceStamped'
+    },
     // 里程计话题
-    odom: '/fastlio2/lio_odom',
+    odom: {
+      topic: '/fastlio2/lio_odom',
+      messageType: 'nav_msgs/msg/Odometry'
+    },
     // 急停话题
-    emergencyStop: '/stop_robot/cmd_vel',
+    emergencyStop: {
+      topic: '/stop_robot/cmd_vel',
+      messageType: 'geometry_msgs/msg/Twist'
+    },
     // 左电池话题
-    batteryLeft: '/tita3232802/system/battery/left',
+    batteryLeft: {
+      topic: '/tita3232802/system/battery/left',
+      messageType: 'sensor_msgs/msg/BatteryState'
+    },
     // 右电池话题
-    batteryRight: '/tita3232802/system/battery/right'
+    batteryRight: {
+      topic: '/tita3232802/system/battery/right',
+      messageType: 'sensor_msgs/msg/BatteryState'
+    },
+    // 机器人信息话题
+    robotInfo: {
+      topic: '/robot/info',
+      messageType: 'sea_interfaces/msg/RobotInfo'
+    }
   },
 
   // 急停配置
   emergencyStop: {
     // 急停时的线速度 (m/s)，0 表示完全停止
-    linearVelocity: -0.15,
+    linearVelocity: -0.02,
     // 发布频率 (Hz)
     publishRate: 20
   },
