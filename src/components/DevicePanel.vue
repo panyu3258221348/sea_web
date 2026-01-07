@@ -76,11 +76,11 @@
         <div class="info-grid">
           <div class="info-item">
             <span class="label">线速度</span>
-            <span class="value">{{ odomVelocity.linear.toFixed(2) }} m/s</span>
+            <span class="value">{{ Math.abs(odomVelocity.linear) < 0.01 ? '0.00' : odomVelocity.linear.toFixed(2) }} m/s</span>
           </div>
           <div class="info-item">
             <span class="label">角速度</span>
-            <span class="value">{{ odomVelocity.angular.toFixed(2) }} rad/s</span>
+            <span class="value">{{ Math.abs(odomVelocity.angular) < 0.1 ? '0.0' : odomVelocity.angular.toFixed(1) }} rad/s</span>
           </div>
         </div>
       </div>
@@ -454,8 +454,7 @@ export default {
       });
       
       this.batteryLeftSubscriber.subscribe((message) => {
-        // BatteryState.percentage 范围是 0.0-1.0，转换为百分比
-        this.deviceInfo.batteryLeft = Math.round(message.percentage * 100);
+        this.deviceInfo.batteryLeft = Math.round(message.percentage);
       });
       
       console.log(`Subscribed to ${config.topics.batteryLeft}`);
@@ -473,8 +472,7 @@ export default {
       });
       
       this.batteryRightSubscriber.subscribe((message) => {
-        // BatteryState.percentage 范围是 0.0-1.0，转换为百分比
-        this.deviceInfo.batteryRight = Math.round(message.percentage * 100);
+        this.deviceInfo.batteryRight = Math.round(message.percentage);
       });
       
       console.log(`Subscribed to ${config.topics.batteryRight}`);

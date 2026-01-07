@@ -20,7 +20,8 @@ function createWindow() {
       contextIsolation: false,
       webSecurity: false
     },
-    icon: path.join(__dirname, '../public/favicon.ico'),
+    // icon: path.join(__dirname, '../public/icon.png'),
+    icon: path.join(__dirname, 'icons', 'icon.png'),
     show: false // 先隐藏窗口，等加载完成后再显示
   });
 
