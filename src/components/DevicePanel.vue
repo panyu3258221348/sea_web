@@ -51,6 +51,10 @@
             <span class="value" :class="statusClass">{{ deviceInfo.status }}</span>
           </div>
           <div class="info-item">
+            <span class="label">机器人消息</span>
+            <span class="value robot-message">{{ robotMessage || '无' }}</span>
+          </div>
+          <div class="info-item">
             <span class="label">左电池电量</span>
             <div class="battery-bar">
               <div class="battery-level" :class="{ 'battery-low': deviceInfo.batteryLeft < 25 }" :style="{ width: deviceInfo.batteryLeft + '%' }"></div>
@@ -183,6 +187,8 @@ export default {
       batteryRightSubscriber: null,
       // 机器人信息订阅器
       robotInfoSubscriber: null,
+      // 机器人消息
+      robotMessage: '',
       deviceInfo: { ...config.device },
       // 自动连接
       autoConnectTimer: null,
@@ -502,6 +508,7 @@ export default {
         this.deviceInfo.name = message.robot_type;
         this.deviceInfo.id = message.robot_id;
         this.deviceInfo.status = message.status;
+        this.robotMessage = message.robot_message || '';
       });
       
       console.log(`Subscribed to ${config.topics.robotInfo.topic}`);
@@ -830,6 +837,13 @@ export default {
 
 .status-charging {
   color: #2563eb !important;
+}
+
+.robot-message {
+  word-break: break-all;
+  max-width: 150px;
+  font-size: 12px !important;
+  color: #475569 !important;
 }
 
 .battery-bar {
