@@ -10,7 +10,7 @@
 
 # 项目关键点
 
-- 利用[foxglove翻版开源](https://github.com/lichtblick-suite/lichtblick)，将foxglove三维地图界面缝合到web中
+- 利用[foxglove翻版开源](https://github.com/lichtblick-suite/lichtblick)，将foxglove三维地图界面缝合到web中，实现快速开发
 - foxglove_bridge添加topic白名单，使用`ros2 param list /foxglove_bridge`查看参数
 - 本项目没有任何http协议。使用roslibjs库，前端代码直接订阅/发布ros2话题消息
 
@@ -20,10 +20,26 @@
 |---|---|
 | ![](./src/assets/demo.jpg) | ![](./src/assets/demo_pad.png) |
 
+# 使用说明
 
-## 一、项目结构
+客户端软件使用说明请参考文档[使用说明(中文)](./src/assets/guide_cn.md)
+
+## 一、关键项目结构
 
 ```bash
+sea_web
+├── desktop                       (electron打包配置)
+│
+├── public
+│   └── lichtblick/.webpack       (foxglove yarn 构建)
+│
+└── src
+    ├── assets
+    ├── components
+    │   ├── DevicePanel.vue       (设备信息面板)
+    │   └── LichtblickViewer.vue  (foxglove面板)
+    └── config
+        └── index.js              (参数文件)
 ```
 
 ## 二、开发环境
