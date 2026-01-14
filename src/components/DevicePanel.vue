@@ -98,7 +98,6 @@
           </button>
           <button 
             class="btn btn-danger"
-            :disabled="!isConnected"
             @click="emergencyStop"
           >
             {{ isEmergencyStop ? '取消急停' : '紧急停止' }}
@@ -107,11 +106,10 @@
         <button 
           class="btn" 
           :class="showKeyposes ? 'btn-success' : 'btn-secondary'"
-          :disabled="!isConnected"
           style="margin-top: 10px;"
           @click="toggleKeyposes"
         >
-          {{ showKeyposes ? '隐藏关键点' : '显示关键点' }}
+          {{ showKeyposes ? '隐藏航点' : '显示航点' }}
         </button>
       </div>
 
@@ -139,11 +137,82 @@
             <span class="coord-item"><span class="coord-label">Yaw:</span> {{ initialPose.yaw.toFixed(2) }}</span>
           </div>
         </div>
+        <button 
+          class="btn btn-primary" 
+          style="margin-top: 10px;"
+          @click="showSaveWaypointDialog"
+        >
+          保存航点
+        </button>
+        <button 
+          class="btn btn-secondary" 
+          style="margin-top: 10px;"
+          @click="downloadGridMap"
+        >
+          下载栅格地图
+        </button>
       </div>
     </div>
 
     <div class="panel-footer">
       <span>深圳市海恒智能有限公司</span>
+    </div>
+
+    <!-- 保存航点弹框 -->
+    <div v-if="showWaypointDialog" class="dialog-overlay" @click="closeWaypointDialog">
+      <div class="dialog-box" @click.stop>
+        <div class="dialog-header">
+          <h3>保存航点</h3>
+          <button class="dialog-close" @click="closeWaypointDialog">
+            ×
+          </button>
+        </div>
+        <div class="dialog-content">
+          <div class="form-group">
+            <label>航点名称</label>
+            <input 
+              v-model="waypointName" 
+              type="text" 
+              placeholder="请输入航点名称"
+            />
+          </div>
+          <div class="form-group">
+            <label>InitialPose - X 坐标</label>
+            <input 
+              v-model.number="editInitialPose.x" 
+              type="number" 
+              step="0.01"
+              placeholder="X坐标"
+            />
+          </div>
+          <div class="form-group">
+            <label>InitialPose - Y 坐标</label>
+            <input 
+              v-model.number="editInitialPose.y" 
+              type="number" 
+              step="0.01"
+              placeholder="Y坐标"
+            />
+          </div>
+          <div class="form-group">
+            <label>InitialPose - Yaw 角度</label>
+            <input 
+              v-model.number="editInitialPose.yaw" 
+              type="number" 
+              step="0.01"
+              placeholder="Yaw角度"
+            />
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn btn-secondary" @click="closeWaypointDialog">
+            取消
+          </button>
+          <button class="btn btn-primary" @click="saveWaypoint">
+            确认
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -198,7 +267,15 @@ export default {
       // 急停状态
       isEmergencyStop: false,
       emergencyStopTimer: null,
-      emergencyStopPublisher: null
+      emergencyStopPublisher: null,
+      // 航点保存
+      showWaypointDialog: false,
+      waypointName: '',
+      editInitialPose: {
+        x: 0,
+        y: 0,
+        yaw: 0
+      }
     };
   },
   computed: {
@@ -602,6 +679,50 @@ export default {
       
       this.isEmergencyStop = false;
     },
+    showSaveWaypointDialog() {
+      if (!this.ros || !this.isConnected) {
+        alert('请先连接 ROS Bridge');
+        return;
+      }
+      
+      this.waypointName = '';
+      // 初始化编辑的initialpose值为当前值（格式化为两位小数）
+      this.editInitialPose.x = parseFloat(this.initialPose.x.toFixed(2));
+      this.editInitialPose.y = parseFloat(this.initialPose.y.toFixed(2));
+      this.editInitialPose.yaw = parseFloat(this.initialPose.yaw.toFixed(2));
+      this.showWaypointDialog = true;
+    },
+    closeWaypointDialog() {
+      this.showWaypointDialog = false;
+      this.waypointName = '';
+      this.editInitialPose = { x: 0, y: 0, yaw: 0 };
+    },
+    saveWaypoint() {
+      if (!this.waypointName.trim()) {
+        alert('请输入航点名称');
+        return;
+      }
+      
+      const waypoint = {
+        name: this.waypointName.trim(),
+        clickPoint: {
+          x: this.clickPoint.x,
+          y: this.clickPoint.y
+        },
+        initialPose: {
+          x: this.editInitialPose.x,
+          y: this.editInitialPose.y,
+          yaw: this.editInitialPose.yaw
+        },
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('保存航点:', waypoint);
+      // TODO: 这里可以添加实际的保存逻辑，例如发送到后端或存储到本地
+      
+      alert(`航点 "${waypoint.name}" 已保存！`);
+      this.closeWaypointDialog();
+    },
     toggleKeyposes() {
       if (!this.ros || !this.isConnected) {
         alert('请先连接 ROS Bridge');
@@ -631,6 +752,123 @@ export default {
         console.error('Show keyposes error:', error);
         alert('设置失败: ' + error);
       });
+    },
+    downloadGridMap() {
+      if (!this.ros || !this.isConnected) {
+        alert('请先连接 ROS Bridge');
+        return;
+      }
+      
+      console.log('Subscribing to /map topic to download grid map...');
+      
+      // 创建临时订阅器获取地图数据
+      const mapTopic = new ROSLIB.Topic({
+        ros: this.ros,
+        name: '/map',
+        messageType: 'nav_msgs/OccupancyGrid'
+      });
+      
+      // 订阅一次地图话题
+      mapTopic.subscribe((message) => {
+        console.log('Received map data:', message);
+        
+        try {
+          // 解析地图数据
+          const width = message.info.width;
+          const height = message.info.height;
+          const resolution = message.info.resolution;
+          const data = message.data;
+          
+          // 生成PGM文件内容
+          const pgmContent = this.generatePGM(width, height, data);
+          
+          // 触发下载
+          this.downloadPGMFile(pgmContent, 'map.pgm');
+          
+          alert('地图文件下载成功！');
+          
+        } catch (error) {
+          console.error('Failed to process map data:', error);
+          alert('地图数据处理失败: ' + error.message);
+        }
+        
+        // 取消订阅
+        mapTopic.unsubscribe();
+      });
+      
+      // 设置超时，如果5秒内没有收到地图数据
+      setTimeout(() => {
+        mapTopic.unsubscribe();
+      }, 5000);
+    },
+    generatePGM(width, height, data) {
+      // PGM格式：P5 (灰度图)
+      // 头部: P5 宽度 高度 最大灰度值
+      // 数据: 每个像素一个字节
+      
+      let pgm = `P5\n${width} ${height}\n255\n`;
+      
+      // 转换占用栅格数据到灰度值
+      // ROS: -1=未知(灰色205), 0=空闲(白色254), 100=占用(黑色0)
+      const pixels = new Uint8Array(data.length);
+      for (let i = 0; i < data.length; i++) {
+        const value = data[i];
+        if (value === -1) {
+          pixels[i] = 205; // 未知区域 - 灰色
+        } else if (value === 0) {
+          pixels[i] = 254; // 空闲区域 - 白色
+        } else {
+          // 占用概率转换为灰度值 (0-100 -> 254-0)
+          pixels[i] = Math.round(254 - (value / 100.0) * 254);
+        }
+      }
+      
+      // 创建Blob
+      const headerBlob = new Blob([pgm], { type: 'text/plain' });
+      const dataBlob = new Blob([pixels], { type: 'application/octet-stream' });
+      
+      return new Blob([headerBlob, dataBlob], { type: 'image/x-portable-graymap' });
+    },
+    generateMapYAML(mapInfo) {
+      // 生成ROS地图的YAML配置文件
+      const yaml = `image: grid_map.pgm
+resolution: ${mapInfo.resolution}
+origin: [${mapInfo.origin.position.x}, ${mapInfo.origin.position.y}, 0.0]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+`;
+      return yaml;
+    },
+    downloadPGMFile(content, filename) {
+      // 创建下载链接
+      const url = typeof content === 'string' 
+        ? URL.createObjectURL(new Blob([content], { type: 'text/plain' }))
+        : URL.createObjectURL(content);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // 释放URL对象
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      
+      console.log('Downloaded:', filename);
+    },
+    triggerFileDownload(url) {
+      // 创建一个隐藏的a标签并触发下载
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'grid_map.pgm'; // 设置下载文件名
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log('Downloading file from:', url);
     }
   }
 };
@@ -1069,5 +1307,125 @@ export default {
   font-size: 11px;
   color: #64748b;
   letter-spacing: 0.5px;
+}
+
+/* 对话框样式 */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.dialog-box {
+  background: white;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: dialogSlideIn 0.2s ease-out;
+}
+
+@keyframes dialogSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.dialog-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.dialog-close:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.dialog-content {
+  padding: 20px;
+}
+
+.dialog-content .form-group {
+  margin-bottom: 16px;
+}
+
+.dialog-content .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.dialog-content .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.dialog-content .form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.dialog-content .form-group input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.dialog-footer .btn {
+  width: auto;
+  padding: 8px 20px;
+  font-size: 14px;
 }
 </style>

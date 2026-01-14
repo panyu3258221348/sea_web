@@ -10,9 +10,9 @@
 
 # 项目关键点
 
-- 利用[foxglove翻版开源](https://github.com/lichtblick-suite/lichtblick)，将foxglove栅格地图界面缝合到web中
+- 利用[foxglove翻版开源](https://github.com/lichtblick-suite/lichtblick)，将foxglove三维地图界面缝合到web中
 - foxglove_bridge添加topic白名单，使用`ros2 param list /foxglove_bridge`查看参数
-- 本项目没有任何http协议。使用roslibjs库，直接订阅/发布ros2话题消息
+- 本项目没有任何http协议。使用roslibjs库，前端代码直接订阅/发布ros2话题消息
 
 # 预览
 
@@ -115,49 +115,3 @@ pnpm electron:build:all
 
 - 在 Linux 上打包 Windows 版本需要安装 `wine`
 - 窗口配置：默认全屏，最小尺寸 1200×800，无菜单栏
-
-### 3. Android APK 打包（Capacitor）
-
-> 由于apk不支持webGL，已经不考虑使用安卓客户端
-
-#### 前置条件
-
-- Android Studio
-- Android SDK
-- JDK 11+
-
-#### 打包步骤
-
-```bash
-# 1. 构建 Web 并同步到 Android 项目
-pnpm cap:build:android
-
-# 2. 打开 Android Studio
-pnpm cap:open:android
-
-# 3. 在 Android Studio 中：Build → Build Bundle(s) / APK(s) → Build APK(s)
-```
-
-#### 命令行打包（可选）
-
-```bash
-cd android
-
-# Debug APK
-./gradlew assembleDebug
-
-# Release APK
-./gradlew assembleRelease
-```
-
-APK 输出位置：`android/app/build/outputs/apk/`
-
-#### 环境变量配置
-
-如果 `cap:open:android` 找不到 Android Studio，需要设置环境变量：
-
-```bash
-export CAPACITOR_ANDROID_STUDIO_PATH="/path/to/android-studio/bin/studio.sh"
-```
-
-可添加到 `~/.bashrc` 永久生效。
