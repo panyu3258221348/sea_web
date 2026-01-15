@@ -8,11 +8,13 @@
 
 <img src="./src/assets/OIP.webp" width="25%">
 
+<img src="./src/assets/icon.png" width="25%">
+
 # 项目关键点
 
 - 利用[foxglove翻版开源](https://github.com/lichtblick-suite/lichtblick)，将foxglove三维地图界面缝合到web中，实现快速开发
 - foxglove_bridge添加topic白名单，使用`ros2 param list /foxglove_bridge`查看参数
-- 本项目没有任何http协议。使用roslibjs库，前端代码直接订阅/发布ros2话题消息
+- 使用roslibjs库，前端代码直接订阅/发布ros2话题消息，只保留少量的http请求
 
 # 预览
 
@@ -129,5 +131,5 @@ pnpm electron:build:all
 
 #### 注意事项
 
-- 在 Linux 上打包 Windows 版本需要安装 `wine`
+- 在 Linux 上打包 Windows 版本需要安装 `wine`，不推荐这样做
 - 窗口配置：默认全屏，最小尺寸 1200×800，无菜单栏

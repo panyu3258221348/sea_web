@@ -15,6 +15,17 @@ const config = {
     connectionTimeout: 5000
   },
 
+  // 地图上传服务配置
+  upload: {
+    // uploadserver URL - 使用与ROS Bridge相同的主机IP
+    get serverUrl() {
+      const host = window.location.hostname || 'localhost';
+      return `http://${host}:8761`;  // Flask路由是根路径 "/"
+    },
+    // 上传端口
+    port: 8761
+  },
+
   // 话题配置
   topics: {
     // 点击点话题

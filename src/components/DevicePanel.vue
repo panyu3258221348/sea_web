@@ -144,6 +144,17 @@
         >
           保存航点
         </button>
+      </div>
+
+      <!-- 地图信息 -->
+      <div class="section">
+        <h3>地图信息</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">地图分辨率</span>
+            <span class="value">{{ mapResolution > 0 ? mapResolution.toFixed(3) + ' m/pixel' : '未获取' }}</span>
+          </div>
+        </div>
         <button 
           class="btn btn-secondary" 
           style="margin-top: 10px;"
@@ -151,6 +162,20 @@
         >
           下载栅格地图
         </button>
+        <button 
+          class="btn btn-secondary" 
+          style="margin-top: 10px;"
+          @click="triggerUploadGridMap"
+        >
+          上传栅格地图
+        </button>
+        <input 
+          ref="gridMapFileInput"
+          type="file" 
+          accept=".pgm"
+          style="display: none;"
+          @change="handleGridMapUpload"
+        />
       </div>
     </div>
 
@@ -275,7 +300,9 @@ export default {
         x: 0,
         y: 0,
         yaw: 0
-      }
+      },
+      // 地图分辨率
+      mapResolution: 0
     };
   },
   computed: {
@@ -372,7 +399,7 @@ export default {
         console.log('Connected to ROS Bridge');
         this.isConnected = true;
         this.isConnecting = false;
-        this.$emit('connection-change', true);
+        this.$emit('connection-change', true, this.ros);
         
         // 订阅 click_point 话题
         this.subscribeClickPoint();
@@ -697,31 +724,57 @@ export default {
       this.waypointName = '';
       this.editInitialPose = { x: 0, y: 0, yaw: 0 };
     },
-    saveWaypoint() {
+    async saveWaypoint() {
       if (!this.waypointName.trim()) {
         alert('请输入航点名称');
         return;
       }
       
-      const waypoint = {
-        name: this.waypointName.trim(),
-        clickPoint: {
-          x: this.clickPoint.x,
-          y: this.clickPoint.y
-        },
-        initialPose: {
-          x: this.editInitialPose.x,
-          y: this.editInitialPose.y,
-          yaw: this.editInitialPose.yaw
-        },
-        timestamp: new Date().toISOString()
-      };
-      
-      console.log('保存航点:', waypoint);
-      // TODO: 这里可以添加实际的保存逻辑，例如发送到后端或存储到本地
-      
-      alert(`航点 "${waypoint.name}" 已保存！`);
-      this.closeWaypointDialog();
+      try {
+        // 将yaw角度(弧度)转换为四元数
+        const yawRad = this.editInitialPose.yaw;
+        const quaternion = {
+          x: 0,
+          y: 0,
+          z: Math.sin(yawRad / 2),
+          w: Math.cos(yawRad / 2)
+        };
+        
+        // 构建符合后端API的请求数据
+        const nodeData = {
+          node_id: this.waypointName.trim(),
+          pose: {
+            position: {
+              x: this.editInitialPose.x,
+              y: this.editInitialPose.y,
+              z: 0.0
+            },
+            orientation: quaternion
+          },
+          neighbors: []
+        };
+        
+        console.log('保存航点到后端:', nodeData);
+        
+        // 调用后端API
+        const response = await fetch(`${config.upload.serverUrl}/api/nodes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(nodeData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert(`航点 "${nodeData.node_id}" 保存成功！`);
+          this.closeWaypointDialog();
+        } else {
+          alert('保存失败: ' + result.error);
+        }
+      } catch (error) {
+        console.error('保存航点失败:', error);
+        alert('保存失败: ' + error.message);
+      }
     },
     toggleKeyposes() {
       if (!this.ros || !this.isConnected) {
@@ -753,6 +806,140 @@ export default {
         alert('设置失败: ' + error);
       });
     },
+    triggerUploadGridMap() {
+      // 触发文件选择器
+      this.$refs.gridMapFileInput.click();
+    },
+    async handleGridMapUpload(event) {
+      const file = event.target.files[0];
+      if (!file) {
+        return;
+      }
+      
+      // 检查文件扩展名
+      const fileName = file.name.toLowerCase();
+      if (!fileName.endsWith('.pgm')) {
+        alert('请上传PGM格式的栅格地图文件！');
+        // 清空文件选择器
+        this.$refs.gridMapFileInput.value = '';
+        return;
+      }
+      
+      // 验证PGM文件头
+      const isValid = await this.validatePGMFile(file);
+      if (!isValid) {
+        alert('文件格式不正确，请确保上传的是有效的PGM文件！');
+        this.$refs.gridMapFileInput.value = '';
+        return;
+      }
+      
+      // 上传文件到Flask服务器
+      try {
+        const uploadUrl = config.upload.serverUrl;
+        console.log(`正在上传 "${file.name}" 到 ${uploadUrl}（将重命名为 map.pgm）...`);
+        
+        const formData = new FormData();
+        // 强制重命名为 map.pgm
+        const renamedFile = new File([file], 'map.pgm', { type: file.type });
+        // Flask使用 "file" 作为字段名
+        formData.append('file', renamedFile);
+        
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          const responseText = await response.text();
+          console.log('Upload success:', responseText);
+          alert('上传成功！');
+        } else {
+          const errorText = await response.text();
+          console.error('Upload failed:', response.status, errorText);
+          alert(`上传失败 (${response.status})\n${errorText}`);
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        alert(`网络错误: ${error.message}\n\n请检查:\n1. Flask服务是否正在运行: ${config.upload.serverUrl}\n2. 网络连接是否正常`);
+      }
+
+      // 清空文件选择器，允许重复上传同一文件
+      this.$refs.gridMapFileInput.value = '';
+    },
+    async validatePGMFile(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        
+        // 只读取前1KB用于验证文件头
+        const blob = file.slice(0, 1024);
+        
+        reader.onload = (e) => {
+          try {
+            const content = e.target.result;
+            const text = new TextDecoder('utf-8').decode(new Uint8Array(content));
+            const lines = text.split('\n').filter(line => !line.trim().startsWith('#'));
+            
+            // 检查PGM魔数（P2=ASCII, P5=Binary）
+            if (lines.length === 0) {
+              resolve(false);
+              return;
+            }
+            
+            const magicNumber = lines[0].trim();
+            if (magicNumber !== 'P2' && magicNumber !== 'P5') {
+              console.error('Invalid PGM magic number:', magicNumber);
+              resolve(false);
+              return;
+            }
+            
+            // 检查是否有宽度和高度信息
+            if (lines.length < 3) {
+              console.error('PGM file missing width/height information');
+              resolve(false);
+              return;
+            }
+            
+            // 验证宽度和高度是否为数字
+            const dimensions = lines[1].trim().split(/\s+/);
+            if (dimensions.length !== 2) {
+              console.error('Invalid PGM dimensions format');
+              resolve(false);
+              return;
+            }
+            
+            const width = parseInt(dimensions[0]);
+            const height = parseInt(dimensions[1]);
+            
+            if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+              console.error('Invalid PGM dimensions:', width, height);
+              resolve(false);
+              return;
+            }
+            
+            // 验证最大灰度值
+            const maxVal = parseInt(lines[2].trim());
+            if (isNaN(maxVal) || maxVal <= 0) {
+              console.error('Invalid PGM max value:', maxVal);
+              resolve(false);
+              return;
+            }
+            
+            console.log('Valid PGM file:', { magicNumber, width, height, maxVal });
+            resolve(true);
+          } catch (error) {
+            console.error('Error validating PGM file:', error);
+            resolve(false);
+          }
+        };
+        
+        reader.onerror = () => {
+          console.error('Error reading file');
+          resolve(false);
+        };
+        
+        reader.readAsArrayBuffer(blob);
+      });
+    },
     downloadGridMap() {
       if (!this.ros || !this.isConnected) {
         alert('请先连接 ROS Bridge');
@@ -778,6 +965,9 @@ export default {
           const height = message.info.height;
           const resolution = message.info.resolution;
           const data = message.data;
+          
+          // 更新地图分辨率
+          this.mapResolution = resolution;
           
           // 生成PGM文件内容
           const pgmContent = this.generatePGM(width, height, data);
@@ -829,17 +1019,7 @@ export default {
       
       return new Blob([headerBlob, dataBlob], { type: 'image/x-portable-graymap' });
     },
-    generateMapYAML(mapInfo) {
-      // 生成ROS地图的YAML配置文件
-      const yaml = `image: grid_map.pgm
-resolution: ${mapInfo.resolution}
-origin: [${mapInfo.origin.position.x}, ${mapInfo.origin.position.y}, 0.0]
-negate: 0
-occupied_thresh: 0.65
-free_thresh: 0.196
-`;
-      return yaml;
-    },
+
     downloadPGMFile(content, filename) {
       // 创建下载链接
       const url = typeof content === 'string' 
