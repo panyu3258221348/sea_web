@@ -8,6 +8,7 @@
     "dist/**/*",
     "desktop/**/*"
   ],
+  "publish": null,
   "linux": {
     "target": [
       {
