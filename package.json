@@ -3,11 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "description": "Sea Web Application",
-  "author": {
-    "name": "Seaever",
-    "email": "contact@seaever.com"
-  },
-  "homepage": "https://github.com/Seaever/Sea-AI",
   "main": "desktop/main.js",
   "scripts": {
     "serve": "vue-cli-service serve",
