@@ -2,12 +2,13 @@
 
 # sea_web
 
-海恒智能导航底盘管理终端，对接sea_slam仓库中的所有ROS2话题服务接口
+海恒智能导航底盘管理终端，对接[sea_slam仓库](https://gitee.com/seaever/sea_slam)中的所有ROS2话题服务接口
 
-> 目标：所有3D导航车共用一套代码
+**目标：所有3D导航车共用一套代码**
+
+> 与我交流：https://cmcblog.netlify.app/about/
 
 <img src="./src/assets/OIP.webp" width="25%">
-
 <img src="./src/assets/icon.png" width="25%">
 
 # 项目关键点
@@ -39,6 +40,8 @@ sea_web
     ├── assets
     ├── components
     │   ├── DevicePanel.vue       (设备信息面板)
+    │   ├── KeyposesViewer.vue    (航点可视化面板)
+    │   ├── NodeEditDialog.vue    (航点编辑对话框)
     │   └── LichtblickViewer.vue  (foxglove面板)
     └── config
         └── index.js              (参数文件)
@@ -60,6 +63,8 @@ pnpm install
 
 ## 三、运行开发
 
+> 注意本项目引用的lichtblick开源，是有经过修改的，要提前把布局约束好，不用让用户调布局
+
 ```bash
 pnpm run serve
 ```
@@ -75,7 +80,7 @@ pnpm run lint
 ### 1. Web 部署（Nginx）
 
 ```bash
-pnpm run build
+pnpm build
 ```
 
 安装使用Nginx部署
@@ -85,7 +90,7 @@ sudo apt install nginx -y
 sudo systemctl start nginx      # 启动 Nginx
 sudo systemctl enable nginx     # 设置开机自启
 
-sudo rm /var/www/html/*.html   # 清除默认欢迎界面html
+sudo rm /var/www/html/*.html    # 清除默认欢迎界面html
 
 sudo cp -r dist/* /var/www/html
 sudo systemctl restart nginx
@@ -133,3 +138,4 @@ pnpm electron:build:all
 
 - 在 Linux 上打包 Windows 版本需要安装 `wine`，不推荐这样做
 - 窗口配置：默认全屏，最小尺寸 1200×800，无菜单栏
+- 暂时不考虑支持安卓
